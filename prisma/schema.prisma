@@ -1,0 +1,113 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int               @id @default(autoincrement())
+  username        String            @unique
+  email           String            @unique
+  password        String
+  profilePic      String
+  playlists       Playlist[]
+  favoriteSongs   favoriteSongs[]
+  favoriteGenres  favoriteGenres[]
+  favoriteArtists favoriteArtists[]
+  comments        comments[]
+}
+
+model Song {
+  id            Int             @id @default(autoincrement())
+  title         String
+  genre         Genre           @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  genreId       Int
+  src           String
+  image         String
+  artistsSongs  artistsSongs[]
+  favoriteSongs favoriteSongs[]
+  playlistSongs playlistSongs[]
+  comments      comments[]
+}
+
+model artistsSongs {
+  id       Int    @id @default(autoincrement())
+  artistId Int
+  songId   Int
+  artist   Artist @relation(fields: [artistId], references: [id])
+  song     Song   @relation(fields: [songId], references: [id])
+}
+
+model favoriteSongs {
+  id     Int  @id @default(autoincrement())
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song   Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+  userId Int
+  songId Int
+}
+
+model Genre {
+  id             Int              @id @default(autoincrement())
+  name           String           @unique
+  image          String
+  songs          Song[]
+  artists        Artist[]
+  favoriteGenres favoriteGenres[]
+}
+
+model favoriteGenres {
+  id      Int   @id @default(autoincrement())
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  genre   Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  userId  Int
+  genreId Int
+}
+
+model Artist {
+  id              Int               @id @default(autoincrement())
+  name            String
+  image           String
+  genre           Genre             @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  genreId         Int
+  favoriteArtists favoriteArtists[]
+  artistsSongs    artistsSongs[]
+}
+
+model favoriteArtists {
+  id       Int    @id @default(autoincrement())
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artist   Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  userId   Int
+  artistId Int
+}
+
+model Playlist {
+  id            Int             @id @default(autoincrement())
+  userId        Int
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  playlistSongs playlistSongs[]
+}
+
+model playlistSongs {
+  id         Int      @id @default(autoincrement())
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  song       Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  playlistId Int
+  songId     Int
+}
+
+model comments {
+  id      Int    @id @default(autoincrement())
+  content String
+  userId  Int
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  songId  Int
+  song    Song   @relation(fields: [songId], references: [id], onDelete: Cascade)
+}
