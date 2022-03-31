@@ -40,8 +40,8 @@ model artistsSongs {
   id       Int    @id @default(autoincrement())
   artistId Int
   songId   Int
-  artist   Artist @relation(fields: [artistId], references: [id])
-  song     Song   @relation(fields: [songId], references: [id])
+  artist   Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  song     Song   @relation(fields: [songId], references: [id], onDelete: Cascade)
 }
 
 model favoriteSongs {

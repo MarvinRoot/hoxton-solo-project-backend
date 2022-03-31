@@ -38,17 +38,6 @@ const users = [
         email: "marvin@mail.com",
         password: bcrypt.hashSync('marvin123'),
         profilePic: "https://avatars.dicebear.com/api/avataaars/Marvin.svg",
-        favoriteGenres: [],
-        favoriteSongs: [],
-        favoriteArtists: [],
-        playlists: [
-            {
-                id: 1,
-                userId: 1,
-                title: "Fire",
-                playlistSongs: []
-            }
-        ]
     }
 ]
 
@@ -645,7 +634,7 @@ const playlistSongs = [
         songId: 1
     },
     {
-        userId: 1,
+        playlistId: 1,
         songId: 2
     }
 ]
@@ -658,3 +647,57 @@ const comments = [
     }
 ]
 
+const playlists = [
+    {
+        userId: 1,
+        title: "fire"
+    }
+]
+
+async function createStuff() {
+    for (const genre of genres) {
+        await prisma.genre.create({ data: genre })
+    }
+
+    for (const artist of artists) {
+        await prisma.artist.create({ data: artist })
+    }
+
+    for (const song of songs) {
+        await prisma.song.create({ data: song })
+    }
+
+    for (const artistsSong of artistsSongs) {
+        await prisma.artistsSongs.create({ data: artistsSong })
+    }
+
+    for (const user of users) {
+        await prisma.user.create({ data: user })
+    }
+
+    for (const playlist of playlists) {
+        await prisma.playlist.create({ data: playlist })
+    }
+
+    for (const favoriteSong of favoriteSongs) {
+        await prisma.favoriteSongs.create({ data: favoriteSong })
+    }
+
+    for (const favoriteGenre of favoriteGenres) {
+        await prisma.favoriteGenres.create({ data: favoriteGenre })
+    }
+
+    for (const playlistSong of playlistSongs) {
+        await prisma.playlistSongs.create({ data: playlistSong })
+    }
+
+    for (const favoriteArtist of favoriteArtists) {
+        await prisma.favoriteArtists.create({ data: favoriteArtist })
+    }
+
+    for (const comment of comments) {
+        await prisma.comments.create({ data: comment })
+    }
+}
+
+createStuff()
