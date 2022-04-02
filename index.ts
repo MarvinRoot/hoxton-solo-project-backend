@@ -295,4 +295,88 @@ app.post('/favoriteGenres', async (req, res) => {
     }
 })
 
+// removes song from user's favoriteSongs list
+app.delete('/favoriteSongs/:id', async (req, res) => {
+    const id = Number(req.params.id)
+    const token = req.headers.authorization || ''
+    try {
+        const favSong = await prisma.favoriteSongs.findUnique({ where: { id } })
+        const user = await getUserFromToken(token)
+        if (!user) {
+            res.status(404).send({ error: 'User not found' })
+            return
+        }
+        if (!favSong) {
+            res.status(404).send({ error: 'Song not found on list' })
+            return
+        }
+
+        if (user.id === favSong.userId) {
+            await prisma.favoriteSongs.delete({ where: { id } })
+            res.send(favSong)
+        } else {
+            res.status(401).send({ error: 'You are not authorised to remove song from list' })
+        }
+    } catch (err) {
+        //@ts-ignore
+        res.status(401).send({ error: err.message })
+    }
+})
+
+// removes artist from user's favoriteArtists list
+app.delete('/favoriteArtists/:id', async (req, res) => {
+    const id = Number(req.params.id)
+    const token = req.headers.authorization || ''
+    try {
+        const favArtist = await prisma.favoriteArtists.findUnique({ where: { id } })
+        const user = await getUserFromToken(token)
+        if (!user) {
+            res.status(404).send({ error: 'User not found' })
+            return
+        }
+        if (!favArtist) {
+            res.status(404).send({ error: 'Artist not found on list' })
+            return
+        }
+
+        if (user.id === favArtist.userId) {
+            await prisma.favoriteArtists.delete({ where: { id } })
+            res.send(favArtist)
+        } else {
+            res.status(401).send({ error: 'You are not authorised to remove artist from list' })
+        }
+    } catch (err) {
+        //@ts-ignore
+        res.status(401).send({ error: err.message })
+    }
+})
+
+// removes genre from user's favoriteGenres list
+app.delete('/favoriteGenres/:id', async (req, res) => {
+    const id = Number(req.params.id)
+    const token = req.headers.authorization || ''
+    try {
+        const favGenre = await prisma.favoriteGenres.findUnique({ where: { id } })
+        const user = await getUserFromToken(token)
+        if (!user) {
+            res.status(404).send({ error: 'User not found' })
+            return
+        }
+        if (!favGenre) {
+            res.status(404).send({ error: 'Genre not found on list' })
+            return
+        }
+
+        if (user.id === favGenre.userId) {
+            await prisma.favoriteGenres.delete({ where: { id } })
+            res.send(favGenre)
+        } else {
+            res.status(401).send({ error: 'You are not authorised to remove genre from list' })
+        }
+    } catch (err) {
+        //@ts-ignore
+        res.status(401).send({ error: err.message })
+    }
+})
+
 app.listen(PORT, () => console.log(`Server up: http:\\localhost:${PORT}`))
