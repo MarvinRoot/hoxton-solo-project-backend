@@ -36,6 +36,7 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
+// signs up a user
 app.post('/sign-up', async (req, res) => {
     const { username, email, password } = req.body
 
@@ -60,6 +61,7 @@ app.post('/sign-up', async (req, res) => {
     }
 })
 
+// signs in a user
 app.post('/sign-in', async (req, res) => {
     const { email, password } = req.body
 
@@ -94,6 +96,7 @@ app.get('/validate', async (req, res) => {
     }
 })
 
+// gets all songs
 app.get('/songs', async (req, res) => {
     try {
         const songs = await prisma.song.findMany({ include: { artistsSongs: { include: { artist: true } } } })
@@ -105,6 +108,7 @@ app.get('/songs', async (req, res) => {
 
 })
 
+// gets a song by id
 app.get('/songs/:id', async (req, res) => {
     const id = Number(req.params.id)
 
@@ -118,6 +122,7 @@ app.get('/songs/:id', async (req, res) => {
     }
 })
 
+// gets all artists
 app.get('/artists', async (req, res) => {
     try {
         const artist = await prisma.artist.findMany({ include: { artistsSongs: { include: { song: true } } } })
@@ -128,6 +133,7 @@ app.get('/artists', async (req, res) => {
     }
 })
 
+// gets an artist by id
 app.get('/artists/:id', async (req, res) => {
     const id = Number(req.params.id)
 
@@ -141,6 +147,7 @@ app.get('/artists/:id', async (req, res) => {
     }
 })
 
+// gets all genres
 app.get('/genres', async (req, res) => {
     try {
         const genres = await prisma.genre.findMany()
@@ -151,6 +158,7 @@ app.get('/genres', async (req, res) => {
     }
 })
 
+// gets all users
 app.get('/users', async (req, res) => {
     try {
         const users = await prisma.user.findMany(
@@ -169,6 +177,7 @@ app.get('/users', async (req, res) => {
     }
 })
 
+// gets a user by id
 app.get('/users/:id', async (req, res) => {
     const id = Number(req.params.id)
 
@@ -189,6 +198,7 @@ app.get('/users/:id', async (req, res) => {
     }
 })
 
+// gets all playlists
 app.get('/playlists', async (req, res) => {
     try {
         const playlists = await prisma.playlist.findMany(
@@ -202,6 +212,7 @@ app.get('/playlists', async (req, res) => {
     }
 })
 
+// gets a playlist by id
 app.get('/playlists/:id', async (req, res) => {
     const id = Number(req.params.id)
 
@@ -209,6 +220,75 @@ app.get('/playlists/:id', async (req, res) => {
         const playlists = await prisma.playlist.findUnique({ where: { id }, include: { playlistSongs: { include: { song: true } } } })
         if (playlists) res.send(playlists)
         else res.status(400).send({ error: `Playlist with id ${id} not found` })
+    } catch (err) {
+        //@ts-ignore
+        res.status(400).send({ error: err.message })
+    }
+})
+
+// adds a song to the user's favorite songs list
+app.post('/favoriteSongs', async (req, res) => {
+    const token = req.headers.authorization || ''
+    const { userId, songId } = req.body
+
+    try {
+        const user = await getUserFromToken(token)
+        if (!user) {
+            res.status(404).send({ error: 'User not found' })
+            return
+        }
+        const song = await prisma.favoriteSongs.create({
+            data: { userId, songId }
+        })
+        // maybe write some code that detects if song already belongs to user's favs
+        // think about it later
+        res.send({ message: 'Added to favorite songs' })
+    } catch (err) {
+        //@ts-ignore
+        res.status(400).send({ error: err.message })
+    }
+})
+
+// adds an artist to the user's favorite artists list
+app.post('/favoriteArtists', async (req, res) => {
+    const token = req.headers.authorization || ''
+    const { userId, artistId } = req.body
+
+    try {
+        const user = await getUserFromToken(token)
+        if (!user) {
+            res.status(404).send({ error: 'User not found' })
+            return
+        }
+        const artist = await prisma.favoriteArtists.create({
+            data: { userId, artistId }
+        })
+        // maybe write some code that detects if artist already belongs to user's favs
+        // think about it later
+        res.send({ message: 'Added to favorite artists' })
+    } catch (err) {
+        //@ts-ignore
+        res.status(400).send({ error: err.message })
+    }
+})
+
+// adds a genre to the user's favorite genres list
+app.post('/favoriteGenres', async (req, res) => {
+    const token = req.headers.authorization || ''
+    const { userId, genreId } = req.body
+
+    try {
+        const user = await getUserFromToken(token)
+        if (!user) {
+            res.status(404).send({ error: 'User not found' })
+            return
+        }
+        const genre = await prisma.favoriteGenres.create({
+            data: { userId, genreId }
+        })
+        // maybe write some code that detects if genre already belongs to user's favs
+        // think about it later
+        res.send({ message: 'Added to favorite genres' })
     } catch (err) {
         //@ts-ignore
         res.status(400).send({ error: err.message })
