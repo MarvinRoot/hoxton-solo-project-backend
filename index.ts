@@ -237,12 +237,16 @@ app.post('/favoriteSongs', async (req, res) => {
             res.status(404).send({ error: 'User not found' })
             return
         }
-        const song = await prisma.favoriteSongs.create({
-            data: { userId, songId }
-        })
+        if (user.id === userId) {
+            const song = await prisma.favoriteSongs.create({
+                data: { userId, songId }
+            })
+            res.send({ message: 'Added to favorite songs' })
+        } else {
+            res.send({ message: 'You are not authorized!' })
+        }
         // maybe write some code that detects if song already belongs to user's favs
         // think about it later
-        res.send({ message: 'Added to favorite songs' })
     } catch (err) {
         //@ts-ignore
         res.status(400).send({ error: err.message })
@@ -260,12 +264,17 @@ app.post('/favoriteArtists', async (req, res) => {
             res.status(404).send({ error: 'User not found' })
             return
         }
-        const artist = await prisma.favoriteArtists.create({
-            data: { userId, artistId }
-        })
+        if (user.id === userId) {
+            const artist = await prisma.favoriteArtists.create({
+                data: { userId, artistId }
+            })
+            res.send({ message: 'Added to favorite artists' })
+        } else {
+            res.send({ message: 'You are not authorized!' })
+        }
+
         // maybe write some code that detects if artist already belongs to user's favs
         // think about it later
-        res.send({ message: 'Added to favorite artists' })
     } catch (err) {
         //@ts-ignore
         res.status(400).send({ error: err.message })
@@ -283,12 +292,67 @@ app.post('/favoriteGenres', async (req, res) => {
             res.status(404).send({ error: 'User not found' })
             return
         }
-        const genre = await prisma.favoriteGenres.create({
-            data: { userId, genreId }
-        })
+        if (user.id === userId) {
+            const genre = await prisma.favoriteGenres.create({
+                data: { userId, genreId }
+            })
+            res.send({ message: 'Added to favorite genres' })
+        } else {
+            res.send({ message: 'You are not authorized!' })
+        }
+
         // maybe write some code that detects if genre already belongs to user's favs
         // think about it later
-        res.send({ message: 'Added to favorite genres' })
+    } catch (err) {
+        //@ts-ignore
+        res.status(400).send({ error: err.message })
+    }
+})
+
+// adds a playlist to user's playlists
+app.post('/playlists', async (req, res) => {
+    const token = req.headers.authorization || ''
+    const { userId, title } = req.body
+
+    try {
+        const user = await getUserFromToken(token)
+        if (!user) {
+            res.status(404).send({ error: 'User not found' })
+            return
+        }
+        if (user.id === userId) {
+            await prisma.playlist.create({
+                data: { userId, title }
+            })
+            res.send({ message: `Playlist ${title} was added to you playlists` })
+        } else {
+            res.send({ message: 'You are not authorized!' })
+        }
+    } catch (err) {
+        //@ts-ignore
+        res.status(400).send({ error: err.message })
+    }
+})
+
+app.post('/playlistSongs', async (req, res) => {
+    const token = req.headers.authorization || ''
+    const { userId, playlistId, songId } = req.body
+
+    try {
+        const user = await getUserFromToken(token)
+        if (!user) {
+            res.status(404).send({ error: 'User not found' })
+            return
+        }
+        if (user.id === userId) {
+            await prisma.playlistSongs.create({
+                data: { playlistId, songId }
+            })
+            res.send({ message: `Song was added to your playlist` })
+        } else {
+            res.send({ message: 'You are not authorized!' })
+        }
+
     } catch (err) {
         //@ts-ignore
         res.status(400).send({ error: err.message })
