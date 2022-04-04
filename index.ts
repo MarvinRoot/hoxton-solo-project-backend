@@ -334,6 +334,7 @@ app.post('/playlists', async (req, res) => {
     }
 })
 
+// adds a song to user's playlists
 app.post('/playlistSongs', async (req, res) => {
     const token = req.headers.authorization || ''
     const { userId, playlistId, songId } = req.body
@@ -437,6 +438,93 @@ app.delete('/favoriteGenres/:id', async (req, res) => {
         } else {
             res.status(401).send({ error: 'You are not authorised to remove genre from list' })
         }
+    } catch (err) {
+        //@ts-ignore
+        res.status(401).send({ error: err.message })
+    }
+})
+
+// deletes playlist
+app.delete('/playlists/:id', async (req, res) => {
+    const id = Number(req.params.id)
+    const token = req.headers.authorization || ''
+    try {
+        const playlist = await prisma.playlist.findUnique({ where: {id}})
+        const user = await getUserFromToken(token)
+        if (!user) {
+            res.status(404).send({ error: 'User not found' })
+            return
+        }
+        if (!playlist) {
+            res.status(404).send({ error: 'Playlist not found on list' })
+            return
+        }
+        if (user.id === playlist.userId) {
+            await prisma.playlist.delete({ where: { id } })
+            res.send(playlist)
+        } else {
+            res.status(401).send({ error: 'You are not authorised to remove genre from list' })
+        }
+    } catch (err) {
+        //@ts-ignore
+        res.status(401).send({ error: err.message })
+    }
+})
+
+// removes song from playlist
+app.delete('/playlistSongs/:id', async (req, res) => {
+    const id = Number(req.params.id)
+    const token = req.headers.authorization || ''
+    try {
+        const playlistSong = await prisma.playlistSongs.findUnique({ where: {id}})
+        const user = await getUserFromToken(token)
+        if (!user) {
+            res.status(404).send({ error: 'User not found' })
+            return
+        }
+        if (!playlistSong) {
+            res.status(404).send({ error: 'Song not found on playlist' })
+            return
+        }
+        await prisma.playlistSongs.delete({ where: { id } })
+        res.send(playlistSong)
+    } catch (err) {
+        //@ts-ignore
+        res.status(401).send({ error: err.message })
+    }
+})
+
+// changes username
+app.patch('/users/:id', async (req, res) => {
+    const id = Number(req.params.id)
+    const token = req.headers.authorization || ''
+    const { newUsername }= req.body
+    try {
+        const user = await getUserFromToken(token)
+        if (!user) {
+            res.status(404).send({ error: 'User not found' })
+            return
+        }
+        const updatedUser = await prisma.user.update({where: {id}, data: {username: newUsername}})
+        res.send(updatedUser)
+    } catch (err) {
+        //@ts-ignore
+        res.status(401).send({ error: err.message })
+    }
+})
+
+app.patch('/playlists/:id', async (req, res) => {
+    const id = Number(req.params.id)
+    const token = req.headers.authorization || ''
+    const { newPlaylistTitle } = req.body
+    try {
+        const user = await getUserFromToken(token)
+        if (!user) {
+            res.status(404).send({ error: 'User not found' })
+            return
+        }
+        const updatedPlaylist = await prisma.playlist.update({where: {id}, data: {title: newPlaylistTitle}})
+        res.send(updatedPlaylist)
     } catch (err) {
         //@ts-ignore
         res.status(401).send({ error: err.message })
