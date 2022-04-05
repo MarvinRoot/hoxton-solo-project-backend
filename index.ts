@@ -261,9 +261,9 @@ app.get('/playlists/:id', async (req, res) => {
         if (!playlist) {
             res.status(400).send({ error: `Playlist with id ${id} not found` })
         } else {
-            let songs = playlist.playlistSongs.map(object => object.song)
+            // let songs = playlist.playlistSongs.map(object => object.song)
             //@ts-ignore
-            playlist.playlistSongs = songs
+            // playlist.playlistSongs = songs
             res.send(playlist)
         }
     } catch (err) {
@@ -424,7 +424,7 @@ app.delete('/favoriteSongs/:id', async (req, res) => {
 
         if (user.id === favSong.userId) {
             await prisma.favoriteSongs.delete({ where: { id } })
-            res.send(favSong)
+            res.send(user)
         } else {
             res.status(401).send({ error: 'You are not authorised to remove song from list' })
         }
@@ -522,6 +522,7 @@ app.delete('/playlistSongs/:id', async (req, res) => {
     const id = Number(req.params.id)
     const token = req.headers.authorization || ''
     try {
+        //@ts-ignore
         const playlistSong = await prisma.playlistSongs.findUnique({ where: { id } })
         const user = await getUserFromToken(token)
         if (!user) {
@@ -532,8 +533,11 @@ app.delete('/playlistSongs/:id', async (req, res) => {
             res.status(404).send({ error: 'Song not found on playlist' })
             return
         }
+        let playlist = await prisma.playlist.findUnique({ where: { id: playlistSong.playlistId } })
+        //@ts-ignore
         await prisma.playlistSongs.delete({ where: { id } })
-        res.send(playlistSong)
+
+        res.send(playlist)
     } catch (err) {
         //@ts-ignore
         res.status(401).send({ error: err.message })
