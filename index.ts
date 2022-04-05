@@ -1,6 +1,6 @@
 import express from 'express'
 import cors from 'cors'
-import { PrismaClient } from '@prisma/client'
+import { Genre, PrismaClient } from '@prisma/client'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 
@@ -23,7 +23,11 @@ async function getUserFromToken(token: string) {
             id: true,
             email: true,
             username: true,
-            profilePic: true
+            profilePic: true,
+            favoriteGenres: true,
+            favoriteArtists: true,
+            favoriteSongs: true,
+            playlists: { include: { playlistSongs: true } }
         }
     })
     return user
@@ -50,7 +54,11 @@ app.post('/sign-up', async (req, res) => {
                 id: true,
                 email: true,
                 username: true,
-                profilePic: true
+                profilePic: true,
+                favoriteGenres: true,
+                favoriteArtists: true,
+                favoriteSongs: true,
+                playlists: { include: { playlistSongs: true } }
             }
         })
         res.send({ user, token: createToken(user.id) })
@@ -67,7 +75,18 @@ app.post('/sign-in', async (req, res) => {
 
     try {
         const user = await prisma.user.findUnique({
-            where: { email }
+            where: { email },
+            select: {
+                id: true,
+                email: true,
+                username: true,
+                password: true,
+                profilePic: true,
+                favoriteGenres: true,
+                favoriteArtists: true,
+                favoriteSongs: true,
+                playlists: { include: { playlistSongs: true } }
+            }
         })
         //@ts-ignore
         const passwordMatches = bcrypt.compareSync(password, user.password)
@@ -78,7 +97,8 @@ app.post('/sign-in', async (req, res) => {
             throw Error('Email/password invalid')
         }
     } catch (err) {
-        res.status(400).send({ error: 'Email/password invalid' })
+        //@ts-ignore
+        res.status(400).send({ error: err.message })
     }
 })
 
@@ -113,9 +133,16 @@ app.get('/songs/:id', async (req, res) => {
     const id = Number(req.params.id)
 
     try {
-        const song = await prisma.song.findUnique({ where: { id }, include: { artistsSongs: { include: { artist: true } } } })
-        if (song) res.send(song)
-        else res.status(400).send({ error: `Song with id ${id} not found` })
+        const song = await prisma.song.findUnique({ where: { id }, include: { artistsSongs: { select: { artist: true } } } })
+        if (!song) {
+            return res.status(400).send({ error: `Song with id ${id} not found` })
+        } else {
+            let artists = song.artistsSongs.map(object => object.artist)
+            //@ts-ignore
+            song.artistsSongs = artists
+            res.send(song)
+        }
+
     } catch (err) {
         //@ts-ignore
         res.status(400).send({ error: err.message })
@@ -182,7 +209,7 @@ app.get('/users/:id', async (req, res) => {
     const id = Number(req.params.id)
 
     try {
-        const users = await prisma.user.findUnique({
+        const user = await prisma.user.findUnique({
             where: { id }, include: {
                 favoriteGenres: { include: { genre: true } },
                 favoriteSongs: { include: { song: true } },
@@ -190,8 +217,20 @@ app.get('/users/:id', async (req, res) => {
                 playlists: { include: { playlistSongs: { include: { song: true } } } }
             }
         })
-        if (users) res.send(users)
-        else res.status(400).send({ error: `User with id ${id} not found` })
+        if (!user) {
+            return res.status(400).send({ error: `User with id ${id} not found` })
+        } else {
+            let genres = user.favoriteGenres.map(object => object.genre)
+            let artists = user.favoriteArtists.map(object => object.artist)
+            let songs = user.favoriteSongs.map(object => object.song)
+            //@ts-ignore
+            user.favoriteGenres = genres
+            //@ts-ignore
+            user.favoriteArtists = artists
+            //@ts-ignore
+            user.favoriteSongs = songs
+            res.send(user)
+        }
     } catch (err) {
         //@ts-ignore
         res.status(400).send({ error: err.message })
@@ -217,9 +256,16 @@ app.get('/playlists/:id', async (req, res) => {
     const id = Number(req.params.id)
 
     try {
-        const playlists = await prisma.playlist.findUnique({ where: { id }, include: { playlistSongs: { include: { song: true } } } })
-        if (playlists) res.send(playlists)
-        else res.status(400).send({ error: `Playlist with id ${id} not found` })
+        const playlist = await prisma.playlist.findUnique({ where: { id }, include: { playlistSongs: { include: { song: true } } } })
+
+        if (!playlist) {
+            res.status(400).send({ error: `Playlist with id ${id} not found` })
+        } else {
+            let songs = playlist.playlistSongs.map(object => object.song)
+            //@ts-ignore
+            playlist.playlistSongs = songs
+            res.send(playlist)
+        }
     } catch (err) {
         //@ts-ignore
         res.status(400).send({ error: err.message })
@@ -282,32 +328,32 @@ app.post('/favoriteArtists', async (req, res) => {
 })
 
 // adds a genre to the user's favorite genres list
-app.post('/favoriteGenres', async (req, res) => {
-    const token = req.headers.authorization || ''
-    const { userId, genreId } = req.body
+// app.post('/favoriteGenres', async (req, res) => {
+//     const token = req.headers.authorization || ''
+//     const { userId, genreId } = req.body
 
-    try {
-        const user = await getUserFromToken(token)
-        if (!user) {
-            res.status(404).send({ error: 'User not found' })
-            return
-        }
-        if (user.id === userId) {
-            const genre = await prisma.favoriteGenres.create({
-                data: { userId, genreId }
-            })
-            res.send({ message: 'Added to favorite genres' })
-        } else {
-            res.send({ message: 'You are not authorized!' })
-        }
+//     try {
+//         const user = await getUserFromToken(token)
+//         if (!user) {
+//             res.status(404).send({ error: 'User not found' })
+//             return
+//         }
+//         if (user.id === userId) {
+//             const genre = await prisma.favoriteGenres.create({
+//                 data: { userId, genreId }
+//             })
+//             res.send(user)
+//         } else {
+//             res.send({ message: 'You are not authorized!' })
+//         }
 
-        // maybe write some code that detects if genre already belongs to user's favs
-        // think about it later
-    } catch (err) {
-        //@ts-ignore
-        res.status(400).send({ error: err.message })
-    }
-})
+//         // maybe write some code that detects if genre already belongs to user's favs
+//         // think about it later
+//     } catch (err) {
+//         //@ts-ignore
+//         res.status(400).send({ error: err.message })
+//     }
+// })
 
 // adds a playlist to user's playlists
 app.post('/playlists', async (req, res) => {
@@ -324,7 +370,7 @@ app.post('/playlists', async (req, res) => {
             await prisma.playlist.create({
                 data: { userId, title }
             })
-            res.send({ message: `Playlist ${title} was added to you playlists` })
+            res.send({ user, message: `Playlist ${title} was added to you playlists` })
         } else {
             res.send({ message: 'You are not authorized!' })
         }
@@ -349,7 +395,7 @@ app.post('/playlistSongs', async (req, res) => {
             await prisma.playlistSongs.create({
                 data: { playlistId, songId }
             })
-            res.send({ message: `Song was added to your playlist` })
+            res.send({ user, message: `Song was added to your playlist` })
         } else {
             res.send({ message: 'You are not authorized!' })
         }
@@ -449,7 +495,7 @@ app.delete('/playlists/:id', async (req, res) => {
     const id = Number(req.params.id)
     const token = req.headers.authorization || ''
     try {
-        const playlist = await prisma.playlist.findUnique({ where: {id}})
+        const playlist = await prisma.playlist.findUnique({ where: { id } })
         const user = await getUserFromToken(token)
         if (!user) {
             res.status(404).send({ error: 'User not found' })
@@ -476,7 +522,7 @@ app.delete('/playlistSongs/:id', async (req, res) => {
     const id = Number(req.params.id)
     const token = req.headers.authorization || ''
     try {
-        const playlistSong = await prisma.playlistSongs.findUnique({ where: {id}})
+        const playlistSong = await prisma.playlistSongs.findUnique({ where: { id } })
         const user = await getUserFromToken(token)
         if (!user) {
             res.status(404).send({ error: 'User not found' })
@@ -498,14 +544,14 @@ app.delete('/playlistSongs/:id', async (req, res) => {
 app.patch('/users/:id', async (req, res) => {
     const id = Number(req.params.id)
     const token = req.headers.authorization || ''
-    const { newUsername }= req.body
+    const { newUsername } = req.body
     try {
         const user = await getUserFromToken(token)
         if (!user) {
             res.status(404).send({ error: 'User not found' })
             return
         }
-        const updatedUser = await prisma.user.update({where: {id}, data: {username: newUsername}})
+        const updatedUser = await prisma.user.update({ where: { id }, data: { username: newUsername } })
         res.send(updatedUser)
     } catch (err) {
         //@ts-ignore
@@ -523,8 +569,45 @@ app.patch('/playlists/:id', async (req, res) => {
             res.status(404).send({ error: 'User not found' })
             return
         }
-        const updatedPlaylist = await prisma.playlist.update({where: {id}, data: {title: newPlaylistTitle}})
+        const updatedPlaylist = await prisma.playlist.update({ where: { id }, data: { title: newPlaylistTitle } })
         res.send(updatedPlaylist)
+    } catch (err) {
+        //@ts-ignore
+        res.status(401).send({ error: err.message })
+    }
+})
+
+// app.patch('/favoriteGenres', async (req, res) => {
+//     const token = req.headers.authorization || ''
+//     const { selectedGenres } = req.body
+//     try {
+//         const user = await getUserFromToken(token)
+//         if (!user) {
+//             res.status(404).send({ error: 'User not found' })
+//             return
+//         }
+//         const updatedUser = await prisma.user.update({ where: { id: user.id }, data: { favoriteGenres: selectedGenres } })
+//         res.send(updatedUser)
+//     } catch (err) {
+//         //@ts-ignore
+//         res.status(401).send({ error: err.message })
+//     }
+// })
+
+app.post('/favoriteGenres', async (req, res) => {
+    const token = req.headers.authorization || ''
+    const { userId, selectedGenres } = req.body
+    try {
+        const user = await getUserFromToken(token)
+        if (!user) {
+            res.status(404).send({ error: 'User not found' })
+            return
+        }
+        let genreIds = selectedGenres.map((genre: Genre) => genre.id)
+        for (let id of genreIds) {
+            await prisma.favoriteGenres.create({ data: { userId, genreId: id } })
+        }
+        res.send(user)
     } catch (err) {
         //@ts-ignore
         res.status(401).send({ error: err.message })
