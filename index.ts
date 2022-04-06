@@ -367,10 +367,12 @@ app.post('/playlists', async (req, res) => {
             return
         }
         if (user.id === userId) {
-            await prisma.playlist.create({
+            let playlist = await prisma.playlist.create({
                 data: { userId, title }
             })
-            res.send({ user, message: `Playlist ${title} was added to you playlists` })
+            const userrr = await getUserFromToken(token)
+
+            res.send({ userrr, message: `Playlist ${title} was added to you playlists` })
         } else {
             res.send({ message: 'You are not authorized!' })
         }
@@ -533,9 +535,9 @@ app.delete('/playlistSongs/:id', async (req, res) => {
             res.status(404).send({ error: 'Song not found on playlist' })
             return
         }
-        let playlist = await prisma.playlist.findUnique({ where: { id: playlistSong.playlistId } })
         //@ts-ignore
         await prisma.playlistSongs.delete({ where: { id } })
+        let playlist = await prisma.playlist.findUnique({ where: { id: playlistSong.playlistId }, include: { playlistSongs: { include: { song: true } } } })
 
         res.send(playlist)
     } catch (err) {
