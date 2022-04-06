@@ -376,7 +376,7 @@ app.post('/playlists', async (req, res) => {
             })
             const userrr = await getUserFromToken(token)
 
-            res.send({ userrr, message: `Playlist ${title} was added to you playlists` })
+            res.send({ playlist, userrr, message: `Playlist ${title} was added to you playlists` })
         } else {
             res.send({ message: 'You are not authorized!' })
         }
@@ -515,7 +515,9 @@ app.delete('/playlists/:id', async (req, res) => {
         }
         if (user.id === playlist.userId) {
             await prisma.playlist.delete({ where: { id } })
-            res.send(playlist)
+            const userrr = await getUserFromToken(token)
+
+            res.send({ playlist, userrr })
         } else {
             res.status(401).send({ error: 'You are not authorised to remove genre from list' })
         }
