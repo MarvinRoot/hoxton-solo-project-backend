@@ -27,7 +27,8 @@ async function getUserFromToken(token: string) {
             favoriteGenres: true,
             favoriteArtists: true,
             favoriteSongs: true,
-            playlists: { include: { playlistSongs: true } }
+            playlists: { include: { playlistSongs: true } },
+            comments: true
         }
     })
     return user
@@ -58,7 +59,9 @@ app.post('/sign-up', async (req, res) => {
                 favoriteGenres: true,
                 favoriteArtists: true,
                 favoriteSongs: true,
-                playlists: { include: { playlistSongs: true } }
+                playlists: { include: { playlistSongs: true } },
+                comments: true
+
             }
         })
         res.send({ user, token: createToken(user.id) })
@@ -85,7 +88,9 @@ app.post('/sign-in', async (req, res) => {
                 favoriteGenres: true,
                 favoriteArtists: true,
                 favoriteSongs: true,
-                playlists: { include: { playlistSongs: true } }
+                playlists: { include: { playlistSongs: true } },
+                comments: true
+
             }
         })
         //@ts-ignore
@@ -133,7 +138,7 @@ app.get('/songs/:id', async (req, res) => {
     const id = Number(req.params.id)
 
     try {
-        const song = await prisma.song.findUnique({ where: { id }, include: { artistsSongs: { select: { artist: true } } } })
+        const song = await prisma.song.findUnique({ where: { id }, include: { artistsSongs: { select: { artist: true } }, comments: { include: { user: true } } } })
         if (!song) {
             return res.status(400).send({ error: `Song with id ${id} not found` })
         } else {
@@ -214,7 +219,8 @@ app.get('/users/:id', async (req, res) => {
                 favoriteGenres: { include: { genre: true } },
                 favoriteSongs: { include: { song: true } },
                 favoriteArtists: { include: { artist: true } },
-                playlists: { include: { playlistSongs: { include: { song: true } } } }
+                playlists: { include: { playlistSongs: { include: { song: true } } } },
+                comments: { include: { user: true } }
             }
         })
         if (!user) {
@@ -628,4 +634,28 @@ app.post('/favoriteGenres', async (req, res) => {
     }
 })
 
+app.post('/comments', async (req, res) => {
+    const token = req.headers.authorization || ''
+    const { userId, songId, content } = req.body
+    try {
+        const user = await getUserFromToken(token)
+        if (!user) {
+            res.status(404).send({ error: 'User not found' })
+            return
+        }
+        if (user.id === userId) {
+            await prisma.comments.create({
+                data: { userId, songId, content }
+            })
+            const song = await prisma.song.findUnique({ where: { id: songId }, include: { artistsSongs: { select: { artist: true } }, comments: { include: { user: true } } } })
+            const userrr = await getUserFromToken(token)
+            res.send({ song, userrr, message: `Song was added to your playlist` })
+        } else {
+            res.send({ message: 'You are not authorized!' })
+        }
+    } catch (err) {
+        //@ts-ignore
+        res.status(400).send({ error: err.message })
+    }
+})
 app.listen(PORT, () => console.log(`Server up: http:\\localhost:${PORT}`))
