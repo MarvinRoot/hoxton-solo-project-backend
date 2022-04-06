@@ -284,10 +284,12 @@ app.post('/favoriteSongs', async (req, res) => {
             return
         }
         if (user.id === userId) {
-            const song = await prisma.favoriteSongs.create({
+            await prisma.favoriteSongs.create({
                 data: { userId, songId }
             })
-            res.send({ message: 'Added to favorite songs' })
+            const userrr = await getUserFromToken(token)
+
+            res.send({ userrr, message: 'Added to favorite songs' })
         } else {
             res.send({ message: 'You are not authorized!' })
         }
@@ -314,7 +316,9 @@ app.post('/favoriteArtists', async (req, res) => {
             const artist = await prisma.favoriteArtists.create({
                 data: { userId, artistId }
             })
-            res.send({ message: 'Added to favorite artists' })
+            const userrr = await getUserFromToken(token)
+
+            res.send({ userrr, message: 'Added to favorite artists' })
         } else {
             res.send({ message: 'You are not authorized!' })
         }
@@ -426,7 +430,8 @@ app.delete('/favoriteSongs/:id', async (req, res) => {
 
         if (user.id === favSong.userId) {
             await prisma.favoriteSongs.delete({ where: { id } })
-            res.send(user)
+            const userrr = await getUserFromToken(token)
+            res.send(userrr)
         } else {
             res.status(401).send({ error: 'You are not authorised to remove song from list' })
         }
@@ -454,7 +459,8 @@ app.delete('/favoriteArtists/:id', async (req, res) => {
 
         if (user.id === favArtist.userId) {
             await prisma.favoriteArtists.delete({ where: { id } })
-            res.send(favArtist)
+            const userrr = await getUserFromToken(token)
+            res.send(userrr)
         } else {
             res.status(401).send({ error: 'You are not authorised to remove artist from list' })
         }
