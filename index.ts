@@ -658,4 +658,34 @@ app.post('/comments', async (req, res) => {
         res.status(400).send({ error: err.message })
     }
 })
+
+app.delete('/comments/:id', async (req, res) => {
+    const id = Number(req.params.id)
+    const token = req.headers.authorization || ''
+    const { songId } = req.body
+    try {
+        const comment = await prisma.comments.findUnique({ where: { id } })
+        const user = await getUserFromToken(token)
+        if (!user) {
+            res.status(404).send({ error: 'User not found' })
+            return
+        }
+        if (!comment) {
+            res.status(404).send({ error: 'Comment not found on list' })
+            return
+        }
+        if (user.id === comment.userId) {
+            await prisma.comments.delete({ where: { id } })
+            const userrr = await getUserFromToken(token)
+            const song = await prisma.song.findUnique({ where: { id: songId }, include: { artistsSongs: { select: { artist: true } }, comments: { include: { user: true } } } })
+            res.send({ song, userrr })
+        } else {
+            res.status(401).send({ error: 'You are not authorised to remove genre from list' })
+        }
+    } catch (err) {
+        //@ts-ignore
+        res.status(401).send({ error: err.message })
+    }
+})
+
 app.listen(PORT, () => console.log(`Server up: http:\\localhost:${PORT}`))
