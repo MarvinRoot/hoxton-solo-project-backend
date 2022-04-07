@@ -627,7 +627,9 @@ app.post('/favoriteGenres', async (req, res) => {
         for (let id of genreIds) {
             await prisma.favoriteGenres.create({ data: { userId, genreId: id } })
         }
-        res.send(user)
+        const userrr = await getUserFromToken(token)
+
+        res.send(userrr)
     } catch (err) {
         //@ts-ignore
         res.status(401).send({ error: err.message })
