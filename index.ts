@@ -564,15 +564,77 @@ app.delete('/playlistSongs/:id', async (req, res) => {
 app.patch('/users/:id', async (req, res) => {
     const id = Number(req.params.id)
     const token = req.headers.authorization || ''
-    const { newUsername } = req.body
+    const { newUsername, password, newPassword, newProfilePic, newEmail } = req.body
     try {
-        const user = await getUserFromToken(token)
+        const userFromToken = await getUserFromToken(token)
+        const user = await prisma.user.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                email: true,
+                username: true,
+                password: true,
+                profilePic: true,
+                favoriteGenres: true,
+                favoriteArtists: true,
+                favoriteSongs: true,
+                playlists: { include: { playlistSongs: true } },
+                comments: true
+
+            }
+        })
         if (!user) {
             res.status(404).send({ error: 'User not found' })
             return
         }
-        const updatedUser = await prisma.user.update({ where: { id }, data: { username: newUsername } })
-        res.send(updatedUser)
+        //@ts-ignore
+        if (user.id !== userFromToken.id) {
+            res.status(404).send({ error: 'You are not authorized' })
+            return
+        }
+        const passwordMatches = bcrypt.compareSync(password, user.password)
+        if (newPassword === null) {
+            if (passwordMatches) {
+                const updatedUser = await prisma.user.update({
+                    where: { id },
+                    data: { username: newUsername, profilePic: newProfilePic, email: newEmail },
+                    select: {
+                        id: true,
+                        email: true,
+                        username: true,
+                        profilePic: true,
+                        favoriteGenres: true,
+                        favoriteArtists: true,
+                        favoriteSongs: true,
+                        playlists: { include: { playlistSongs: true } },
+                        comments: true
+                    }
+                })
+                res.send(updatedUser)
+            } else res.send({ error: 'Wrong password' })
+        } else {
+            if (passwordMatches) {
+                const hash = bcrypt.hashSync(newPassword, 8)
+                const updatedUser = await prisma.user.update({
+                    where: { id },
+                    data: { username: newUsername, profilePic: newProfilePic, email: newEmail, password: hash },
+                    select: {
+                        id: true,
+                        email: true,
+                        username: true,
+                        profilePic: true,
+                        favoriteGenres: true,
+                        favoriteArtists: true,
+                        favoriteSongs: true,
+                        playlists: { include: { playlistSongs: true } },
+                        comments: true
+                    }
+                })
+                res.send(updatedUser)
+            } else res.send({ error: 'Wrong password' })
+        }
+
+
     } catch (err) {
         //@ts-ignore
         res.status(401).send({ error: err.message })
